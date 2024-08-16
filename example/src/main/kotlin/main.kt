@@ -143,18 +143,22 @@ suspend fun main() {
                         "Match ID mismatch: ${event.payload.matchId} != $matchId"
                     }
 
+                    delay(2000)
+
                     client.completeMatchAction(
                         CompleteMatchActionPayload(
                             gameId = event.payload.gameId,
                             matchId = matchId,
-                            gameLength = 10.0,
+                            gameLength = 0.0,
                             teams = listOf(
                                 CompleteMatchActionPayload.Team(
+                                    rank = 0,
                                     players = listOf(
                                         CompleteMatchActionPayload.Player(playerId1, 1.0),
                                     )
                                 ),
                                 CompleteMatchActionPayload.Team(
+                                    rank = 1,
                                     players = listOf(
                                         CompleteMatchActionPayload.Player(playerId2, 0.0),
                                     )

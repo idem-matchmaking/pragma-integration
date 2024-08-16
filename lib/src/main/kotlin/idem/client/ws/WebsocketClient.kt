@@ -1,6 +1,7 @@
 package idem.client.ws
 
 import com.fasterxml.jackson.databind.JsonNode
+import idem.client.AuthTokenProvider
 import idem.client.schemas.Envelope
 import idem.client.schemas.Error
 import idem.client.utils.JsonUtils
@@ -24,7 +25,7 @@ import java.time.Duration
 
 class WebsocketClient(
     private val endpoint: String,
-    private val token: String,
+    private val authTokenProvider: AuthTokenProvider,
     private val gameModes: List<String>,
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -111,6 +112,7 @@ class WebsocketClient(
                     listenerScope.launchListener(it)
                 }
                 try {
+                    val token = authTokenProvider.getAuthToken()
                     client.webSocket("$endpoint?authorization=$token") {
                         logger.debug("Connected to IDEM API websocket")
                         val session = this
@@ -177,6 +179,7 @@ class WebsocketClient(
     private fun CoroutineScope.launchListener(gameId: String) {
         launch {
             while (true) {
+                val token = authTokenProvider.getAuthToken()
                 val client = HttpClient {
                     install(WebSockets)
                 }

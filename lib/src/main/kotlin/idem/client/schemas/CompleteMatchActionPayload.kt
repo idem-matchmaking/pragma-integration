@@ -8,6 +8,7 @@ data class CompleteMatchActionPayload(
     val server: String? = null,
 ) {
     data class Team(
+        val rank: Int,
         val players: List<Player>,
     )
 

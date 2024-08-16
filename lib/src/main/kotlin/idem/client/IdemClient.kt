@@ -1,17 +1,13 @@
 package idem.client
 
-import com.fasterxml.jackson.databind.JsonNode
-import idem.client.schemas.GetPlayersResponsePayload
 import idem.client.utils.configureJackson
 import idem.client.ws.IdemEvent
 import idem.client.ws.WebsocketClient
 import idem.client.ws.commands.Request
 import idem.client.ws.commands.SendAction
 import io.ktor.client.*
-import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -31,31 +27,12 @@ class IdemClient(
             }
         }
     }
+    private val authTokenProvider = AuthTokenProvider(config, client)
     private lateinit var ws: WebsocketClient
 
-    suspend fun start() {
+    fun start() {
         logger.debug("Authenticating with IDEM API")
-        val payload = client.post(config.authEndpoint) {
-            headers {
-                append("X-Amz-Target", "AWSCognitoIdentityProviderService.InitiateAuth")
-                append("Content-Type", "application/x-amz-json-1.1")
-            }
-            setBody(mapOf(
-                "AuthParameters" to mapOf(
-                    "USERNAME" to config.apiUsername,
-                    "PASSWORD" to config.apiPassword,
-                ),
-                "AuthFlow" to "USER_PASSWORD_AUTH",
-                "ClientId" to "3b7bo4gjuqsjuer6eatjsgo58u"
-            ))
-        }.body<JsonNode>()
-        val token = try {
-            payload["AuthenticationResult"]["IdToken"].asText()
-        } catch (e: Exception) {
-            throw IllegalStateException("Failed to authenticate with IDEM API: $payload")
-        }
-        logger.debug("Authenticated with IDEM API, token: {}", token)
-        ws = WebsocketClient(config.wsEndpoint, token, config.gameModes)
+        ws = WebsocketClient(config.wsEndpoint, authTokenProvider, config.gameModes)
         ws.start()
     }
 
