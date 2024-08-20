@@ -6,9 +6,4 @@ package idem.client
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
-class IdemClientTest {
-    @Test fun someLibraryMethodReturnsTrue() {
-        val classUnderTest = IdemClient()
-        assertTrue(classUnderTest.someLibraryMethod(), "someLibraryMethod should return 'true'")
-    }
-}
+class IdemClientTest {}

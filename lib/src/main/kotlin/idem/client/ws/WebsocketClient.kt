@@ -64,7 +64,7 @@ class WebsocketClient(
                     Envelope(
                         action = command.action,
                         messageId = null,
-                        payload = command.payload
+                        payload = command.payload,
                     )
                 )
                 logger.debug("Sending: {}", json)

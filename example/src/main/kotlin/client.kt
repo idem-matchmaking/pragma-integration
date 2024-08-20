@@ -126,8 +126,6 @@ suspend fun main() {
 
                     matchId = event.payload.match.uuid
 
-                    delay(2000)
-
                     client.confirmMatchAction(
                         ConfirmMatchActionPayload(
                             gameId = event.payload.gameId,
@@ -142,8 +140,6 @@ suspend fun main() {
                     require(event.payload.matchId == matchId) {
                         "Match ID mismatch: ${event.payload.matchId} != $matchId"
                     }
-
-                    delay(2000)
 
                     client.completeMatchAction(
                         CompleteMatchActionPayload(

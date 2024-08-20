@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Run Example" type="JetRunConfigurationType">
-    <option name="MAIN_CLASS_NAME" value="MainKt" />
+  <configuration default="false" name="Run Client Example" type="JetRunConfigurationType">
+    <option name="MAIN_CLASS_NAME" value="ClientKt" />
     <module name="client-kotlin.example.main" />
     <shortenClasspath name="NONE" />
     <method v="2">

@@ -43,7 +43,7 @@ class IdemClient(
     internal suspend fun sendAction(action: String, payload: Any) {
         ws.sendCommand(SendAction(
             action = action,
-            payload = payload
+            payload = payload,
         ))
     }
 
