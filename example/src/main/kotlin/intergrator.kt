@@ -1,4 +1,5 @@
 import idemmatchmaking.client.*
+import idemmatchmaking.client.schemas.CompleteMatchActionPayload
 import idemmatchmaking.integration.IdemIntegrator
 import idemmatchmaking.integration.Party
 import idemmatchmaking.integration.Player
@@ -72,11 +73,49 @@ suspend fun main() {
         )),
     ))
 
+    // Replace again with matchable parties
+    integrator.refreshParties(mode, listOf(
+        ExampleParty(UUID.randomUUID(), listOf(
+            ExamplePlayer(playerId1, listOf("server1")),
+        )),
+        ExampleParty(UUID.randomUUID(), listOf(
+            ExamplePlayer(playerId2, listOf("server1")),
+        )),
+    ))
+
     integrator.execute(mode) {
         val players = it.getPlayers(mode).players
         for (player in players) {
             logger.info("Player: ${player}")
         }
+    }
+
+    while (true) {
+        val match = integrator.tryConfirmAndGetNextMatchSuggestion(mode)
+        if (match != null) {
+            logger.info("Match: $match")
+            integrator.completeMatch(
+                mode,
+                matchId = match.matchId,
+                gameLength = 0.0,
+                teams = listOf(
+                    CompleteMatchActionPayload.Team(
+                        rank = 0,
+                        players = listOf(
+                            CompleteMatchActionPayload.Player(playerId1.toString(), 1.0),
+                        )
+                    ),
+                    CompleteMatchActionPayload.Team(
+                        rank = 1,
+                        players = listOf(
+                            CompleteMatchActionPayload.Player(playerId2.toString(), 0.0),
+                        )
+                    )
+                )
+            ).await()
+            break
+        }
+        delay(1000)
     }
 }
 

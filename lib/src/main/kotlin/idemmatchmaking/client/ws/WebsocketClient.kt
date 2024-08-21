@@ -6,9 +6,7 @@ import idemmatchmaking.client.schemas.Envelope
 import idemmatchmaking.client.schemas.Error
 import idemmatchmaking.client.schemas.SubscribeActionPayload
 import idemmatchmaking.client.utils.JsonUtils
-import idemmatchmaking.client.ws.commands.Command
 import idemmatchmaking.client.ws.commands.Request
-import idemmatchmaking.client.ws.commands.SendAction
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.websocket.*
@@ -18,8 +16,6 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.time.withTimeout
 import org.slf4j.LoggerFactory
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.time.Duration
@@ -33,12 +29,12 @@ class WebsocketClient(
     private val logger = LoggerFactory.getLogger(javaClass)
     private val scope = CoroutineScope(Dispatchers.Default)
     private val incomingChannel = Channel<IdemEvent>(Channel.UNLIMITED)
-    private val commandChannel = Channel<Command>(10)
+    private val requestChannel = Channel<Request>(10)
     private val requestMap = ConcurrentHashMap<String, CompletableDeferred<JsonNode>>()
     private var workerJob: Job? = null
 
     private val reconnectDelayMillis = 1000L
-    private val requestTimeout = Duration.ofSeconds(10)
+    private val requestTimeout = Duration.ofSeconds(60)
 
     fun start() {
         if (workerJob != null) {
@@ -51,7 +47,7 @@ class WebsocketClient(
                 gameIds = gameModes
             )
         )
-        commandChannel.trySend(subscribeRequest)
+        requestChannel.trySend(subscribeRequest)
         scope.launch {
             try {
                 subscribeRequest.deferred.await()
@@ -68,8 +64,8 @@ class WebsocketClient(
 
     val incoming get(): ReceiveChannel<IdemEvent> = incomingChannel
 
-    internal suspend fun sendCommand(command: Command) {
-        commandChannel.send(command)
+    internal suspend fun request(request: Request) {
+        requestChannel.send(request)
     }
 
     fun close() {
@@ -77,24 +73,7 @@ class WebsocketClient(
         incomingChannel.close()
     }
 
-    private suspend fun handleCommand(session: DefaultClientWebSocketSession, command: Command) {
-        when (command) {
-            is Request -> handleRequest(session, command)
-            is SendAction -> {
-                val json = JsonUtils.toJson(
-                    Envelope(
-                        action = command.action,
-                        messageId = null,
-                        payload = command.payload,
-                    )
-                )
-                logger.debug("Sending: {}", json)
-                session.send(json)
-            }
-        }
-    }
-
-    private suspend fun handleRequest(session: DefaultClientWebSocketSession, request: Request) {
+    private suspend fun handleCommand(session: DefaultClientWebSocketSession, request: Request) {
         val messageId = UUID.randomUUID().toString()
         val deferred = CompletableDeferred<JsonNode>()
         requestMap[messageId] = deferred
@@ -105,7 +84,9 @@ class WebsocketClient(
                     messageId = messageId,
                     payload = request.actionPayload
                 )
-            )
+            ).also {
+                logger.debug("Sending: {}", it)
+            }
         )
         scope.launch {
             try {
@@ -137,7 +118,7 @@ class WebsocketClient(
                         var isClosed = false
                         while (!isClosed) {
                             select<Unit> {
-                                commandChannel.onReceiveCatching {
+                                requestChannel.onReceiveCatching {
                                     if (it.isSuccess) {
                                         val command = it.getOrThrow()
                                         handleCommand(session, command)
@@ -157,8 +138,12 @@ class WebsocketClient(
                                         val message = result.getOrNull() as? Frame.Text
                                         if (message != null) {
                                             val json = message.readText()
-                                            logger.debug("Received message: {}", json)
-                                            val deserialized = JsonUtils.fromJson<Message>(json)
+                                            logger.debug("Received: {}", json)
+                                            val deserialized = try {
+                                                JsonUtils.fromJson<Message>(json)
+                                            } catch (e: Exception) {
+                                                throw RuntimeException("Failed to deserialize message", e)
+                                            }
 
                                             if (deserialized.messageId != null) {
                                                 val deferred = requestMap.remove(deserialized.messageId)

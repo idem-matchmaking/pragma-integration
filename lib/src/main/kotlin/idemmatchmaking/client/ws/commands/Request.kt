@@ -6,7 +6,7 @@ import idemmatchmaking.client.utils.JsonUtils
 import kotlinx.coroutines.CompletableDeferred
 
 // Requests are actions that are sent to the server and expect a response.
-internal sealed class Request : Command() {
+internal sealed class Request {
     abstract val action: String
     abstract val actionPayload: Any
 

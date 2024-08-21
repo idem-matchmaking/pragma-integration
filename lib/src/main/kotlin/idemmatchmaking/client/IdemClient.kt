@@ -4,7 +4,6 @@ import idemmatchmaking.client.utils.configureJackson
 import idemmatchmaking.client.ws.IdemEvent
 import idemmatchmaking.client.ws.WebsocketClient
 import idemmatchmaking.client.ws.commands.Request
-import idemmatchmaking.client.ws.commands.SendAction
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -40,15 +39,8 @@ class IdemClient(
         return ws.incoming
     }
 
-    internal suspend fun sendAction(action: String, payload: Any) {
-        ws.sendCommand(SendAction(
-            action = action,
-            payload = payload,
-        ))
-    }
-
-    internal suspend fun sendCommand(command: Request) {
-        ws.sendCommand(command)
+    internal suspend fun request(request: Request) {
+        ws.request(request)
     }
 
     fun close() {

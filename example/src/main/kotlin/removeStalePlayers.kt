@@ -33,15 +33,7 @@ suspend fun main() {
 
     while (true) {
         client.incoming.receive().let { event ->
-            when (event) {
-                is IdemEvent.RemovedPlayerAck -> {
-                    logger.info("Players removed: ${event.payload.playerId}")
-                }
-
-                else -> {
-//                    logger.info("Event: $event")
-                }
-            }
+            logger.info("Event: $event")
         }
     }
 }

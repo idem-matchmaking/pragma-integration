@@ -35,7 +35,6 @@ internal class ModeTracker(
     private data class TrackedMatch(
         val matchId: String,
         val server: String,
-        var status: MatchStatus = MatchStatus.SUGGESTED,
     )
 
     init {
@@ -94,9 +93,7 @@ internal class ModeTracker(
                     continue
                 }
 
-                val matchId = nextSuggestion.matchId
                 partyTracker.removeParties(nextSuggestion.parties)
-                trackedMatches[matchId]!!.status = MatchStatus.CONFIRMING
                 actionQueue.pushAction(ModeAction.ConfirmMatch(nextSuggestion.matchId))
                 break
             }
@@ -108,22 +105,27 @@ internal class ModeTracker(
         matchId: String,
         teams: List<CompleteMatchActionPayload.Team>,
         gameLength: Double,
-    ) {
+    ): CompletableDeferred<Unit> {
         lock.withLock {
             val tracked = trackedMatches[matchId]
-            if (tracked == null || tracked.status != MatchStatus.CONFIRMED) {
-                logger.error("Unexpected completeMatch: mode = $mode, matchId = $matchId, status = ${tracked?.status}")
+            val deferred = CompletableDeferred<Unit>()
+            if (tracked == null) {
+                val e = RuntimeException("Unexpected completeMatch: mode = $mode, matchId = $matchId")
+                logger.error(e.message)
+                deferred.completeExceptionally(e)
             } else {
-                trackedMatches[matchId]!!.status = MatchStatus.COMPLETING
                 actionQueue.pushAction(
                     ModeAction.CompleteMatch(
                         matchId,
                         teams,
                         gameLength,
+                        deferred,
                         tracked.server
                     )
                 )
+                trackedMatches.remove(matchId)
             }
+            return deferred
         }
     }
 
@@ -153,7 +155,6 @@ internal class ModeTracker(
             }
 
             val failMatch = {
-                trackedMatches[matchId]!!.status = MatchStatus.FAILING
                 val suggestionPlayerIds = match.teams.flatMap { it.players.map { p -> p.playerId } }.toSet()
                 val activePlayerIds = activeParties.flatMap { it.players.map { p -> p.id.toString() } }.toSet()
                 actionQueue.pushAction(
@@ -163,6 +164,7 @@ internal class ModeTracker(
                         removePlayerIds = suggestionPlayerIds.subtract(activePlayerIds).toList(),
                     )
                 )
+                trackedMatches.remove(matchId)
             }
 
             if (hasParseError) {
@@ -323,74 +325,32 @@ internal class ModeTracker(
             }
 
             is ModeAction.CompleteMatch -> {
-                client.completeMatch(
-                    CompleteMatchActionPayload(
-                        gameId = mode,
-                        matchId = action.matchId,
-                        teams = action.teams,
-                        gameLength = action.gameLength,
-                        server = action.server,
+                try {
+                    client.completeMatch(
+                        CompleteMatchActionPayload(
+                            gameId = mode,
+                            matchId = action.matchId,
+                            teams = action.teams,
+                            gameLength = action.gameLength,
+                            server = action.server,
+                        )
                     )
-                )
+                    action.deferred.complete(Unit)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    action.deferred.completeExceptionally(e)
+                }
             }
 
             is ModeAction.MatchSuggestionDelivery -> {
-                client.matchSuggestionDelivery(
-                    MatchSuggestionDeliveryActionPayload(
-                        gameId = mode,
-                        matchId = action.matchId,
-                    )
-                )
-            }
-        }
-    }
-
-    fun addPlayerAck(playerIds: Collection<String>) {
-        lock.withLock {
-            playerIds.forEach { playerId ->
-                addingPlayerIds.increment(playerId)
-            }
-        }
-    }
-
-    fun removePlayerAck(playerId: String) {
-        lock.withLock {
-            val newCounter = removingPlayers.decrementOrSkip(playerId)
-            if (newCounter == null) {
-                logger.error("Unexpected removePlayerAck: mode = $mode, playerId = $playerId")
-            }
-        }
-    }
-
-    fun failMatchAck(matchId: String) {
-        lock.withLock {
-            val tracked = trackedMatches[matchId]
-            if (tracked == null || tracked.status != MatchStatus.FAILING) {
-                logger.error("Unexpected failMatchAck: mode = $mode, matchId = $matchId, status = ${tracked?.status}")
-            } else {
-                trackedMatches.remove(matchId)
-            }
-        }
-    }
-
-    fun confirmMatchAck(matchId: String) {
-        lock.withLock {
-            val tracked = trackedMatches[matchId]
-            if (tracked == null || tracked.status != MatchStatus.CONFIRMING) {
-                logger.error("Unexpected confirmMatchAck: mode = $mode, matchId = $matchId, status = ${tracked?.status}")
-            } else {
-                trackedMatches[matchId]!!.status = MatchStatus.CONFIRMED
-            }
-        }
-    }
-
-    fun completeMatchAck(matchId: String) {
-        lock.withLock {
-            val tracked = trackedMatches[matchId]
-            if (tracked == null || tracked.status != MatchStatus.CONFIRMED) {
-                logger.error("Unexpected completeMatchAck: mode = $mode, matchId = $matchId, status = ${tracked?.status}")
-            } else {
-                trackedMatches.remove(matchId)
+                // TODO: Enable this when IDEM no longer errors on this
+//                client.matchSuggestionDelivery(
+//                    MatchSuggestionDeliveryActionPayload(
+//                        gameId = mode,
+//                        matchId = action.matchId,
+//                    )
+//                )
             }
         }
     }

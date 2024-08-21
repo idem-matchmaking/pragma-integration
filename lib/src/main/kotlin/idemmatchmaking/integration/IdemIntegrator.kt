@@ -32,8 +32,8 @@ class IdemIntegrator(
         matchId: String,
         teams: List<CompleteMatchActionPayload.Team>,
         gameLength: Double,
-    ) {
-        getModeTracker(mode).completeMatch(matchId, teams, gameLength)
+    ): CompletableDeferred<Unit> {
+        return getModeTracker(mode).completeMatch(matchId, teams, gameLength)
     }
 
     fun start() {
@@ -75,21 +75,6 @@ class IdemIntegrator(
 
     private fun dispatchEvent(event: IdemEvent) {
         when (event) {
-            is IdemEvent.AddPlayerAck -> {
-                getModeTracker(event.payload.gameId).addPlayerAck(event.payload.players.map { it.playerId })
-            }
-            is IdemEvent.RemovedPlayerAck -> {
-                getModeTracker(event.payload.gameId).removePlayerAck(event.payload.playerId)
-            }
-            is IdemEvent.FailMatchAck -> {
-                getModeTracker(event.payload.gameId).failMatchAck(event.payload.matchId)
-            }
-            is IdemEvent.ConfirmMatchAck -> {
-                getModeTracker(event.payload.gameId).confirmMatchAck(event.payload.matchId)
-            }
-            is IdemEvent.CompleteMatchAck -> {
-                getModeTracker(event.payload.gameId).completeMatchAck(event.payload.matchId)
-            }
             is IdemEvent.MatchSuggestion -> {
                 getModeTracker(event.payload.gameId).addMatchSuggestion(event.payload.match)
             }
@@ -97,7 +82,7 @@ class IdemIntegrator(
             is IdemEvent.Disconnected -> {
                 logger.warn("Disconnected from IDEM API: ${event.reason}")
             }
-            is IdemEvent.UnknownResponse -> {
+            is IdemEvent.UnexpectedResponse -> {
                 logger.debug("Unknown response: ${event.action}")
             }
             is IdemEvent.UnknownErrorResponse -> {

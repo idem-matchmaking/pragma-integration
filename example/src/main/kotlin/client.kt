@@ -41,8 +41,6 @@ suspend fun main() {
     if (matches.matches.isNotEmpty()) {
         logger.info("Failing stale matches")
 
-        val waitMatchIds = matches.matches.map { it.uuid }.toMutableSet()
-
         for (match in matches.matches) {
             client.failMatch(
                 FailMatchActionPayload(
@@ -78,15 +76,11 @@ suspend fun main() {
         )
     )
 
-    var matchId = ""
+    var matchId: String
 
     while (true) {
         client.incoming.receive().let { event ->
             when (event) {
-                is IdemEvent.AddPlayerAck -> {
-                    logger.info("Players added: ${event.payload.players.map { it.playerId }}")
-                }
-
                 is IdemEvent.MatchSuggestion -> {
                     logger.info("Match suggestion received: ${event.payload}")
 
