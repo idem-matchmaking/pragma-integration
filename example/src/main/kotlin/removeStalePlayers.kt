@@ -1,10 +1,8 @@
-import idem.client.*
-import idem.client.schemas.*
-import idem.client.ws.IdemEvent
+import idemmatchmaking.client.*
+import idemmatchmaking.client.schemas.*
+import idemmatchmaking.client.ws.IdemEvent
 import io.github.cdimascio.dotenv.dotenv
-import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
-import java.util.UUID
 
 suspend fun main() {
     val env = dotenv {
@@ -24,7 +22,7 @@ suspend fun main() {
 
     val players = client.getPlayers(mode).players
     players.forEach {
-        client.removePlayerAction(
+        client.removePlayer(
             RemovePlayerActionPayload(
                 gameId = mode,
                 playerId = it.playerId,

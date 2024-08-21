@@ -1,8 +1,7 @@
-import idem.client.*
-import idem.client.schemas.*
-import idem.client.ws.IdemEvent
+import idemmatchmaking.client.*
+import idemmatchmaking.client.schemas.*
+import idemmatchmaking.client.ws.IdemEvent
 import io.github.cdimascio.dotenv.dotenv
-import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
 import java.util.UUID
 
@@ -29,7 +28,7 @@ suspend fun main() {
         val waitPlayerIds = players.map { it.playerId }.toMutableSet()
 
         for (player in players) {
-            client.removePlayerAction(
+            client.removePlayer(
                 RemovePlayerActionPayload(
                     gameId = mode,
                     playerId = player.playerId
@@ -57,7 +56,7 @@ suspend fun main() {
         val waitMatchIds = matches.matches.map { it.uuid }.toMutableSet()
 
         for (match in matches.matches) {
-            client.failMatchAction(
+            client.failMatch(
                 FailMatchActionPayload(
                     gameId = mode,
                     matchId = match.uuid,
@@ -82,12 +81,12 @@ suspend fun main() {
         logger.debug("Stale matches cleared")
     }
 
-    val playerId1 = UUID.randomUUID().toString()
-    val playerId2 = UUID.randomUUID().toString()
+    val playerId1 = "00000000-0000-0000-0000-000000000001"
+    val playerId2 = "00000000-0000-0000-0000-000000000002"
 
     // Add players
     logger.info("Adding players: $playerId1, $playerId2")
-    client.addPlayerAction(
+    client.addPlayer(
         AddPlayerActionPayload(
             mode, listOf(
                 AddPlayerActionPayload.Player(playerId1, listOf("server1")),
@@ -95,7 +94,7 @@ suspend fun main() {
         )
     )
 
-    client.addPlayerAction(
+    client.addPlayer(
         AddPlayerActionPayload(
             mode, listOf(
                 AddPlayerActionPayload.Player(playerId2, listOf("server1")),
@@ -126,7 +125,7 @@ suspend fun main() {
 
                     matchId = event.payload.match.uuid
 
-                    client.confirmMatchAction(
+                    client.confirmMatch(
                         ConfirmMatchActionPayload(
                             gameId = event.payload.gameId,
                             matchId = matchId
@@ -141,7 +140,7 @@ suspend fun main() {
                         "Match ID mismatch: ${event.payload.matchId} != $matchId"
                     }
 
-                    client.completeMatchAction(
+                    client.completeMatch(
                         CompleteMatchActionPayload(
                             gameId = event.payload.gameId,
                             matchId = matchId,

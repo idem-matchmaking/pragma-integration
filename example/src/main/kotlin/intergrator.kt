@@ -1,7 +1,7 @@
-import idem.client.*
-import idem.integration.IdemIntegrator
-import idem.integration.Party
-import idem.integration.Player
+import idemmatchmaking.client.*
+import idemmatchmaking.integration.IdemIntegrator
+import idemmatchmaking.integration.Party
+import idemmatchmaking.integration.Player
 import io.github.cdimascio.dotenv.dotenv
 import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
@@ -25,7 +25,8 @@ suspend fun main() {
     )
     integrator.start()
 
-    integrator.removeStalePlayers(mode)
+    integrator.waitSyncFinish(mode)
+    logger.info("Sync finished")
 
     val playerId1 = UUID.fromString("00000000-0000-0000-0000-000000000001")
     val playerId2 = UUID.fromString("00000000-0000-0000-0000-000000000002")
@@ -59,7 +60,24 @@ suspend fun main() {
         )),
     ))
 
-    delay(10000)
+    // Add 1 & 2
+    integrator.refreshParties(mode, listOf(
+        ExampleParty(UUID.randomUUID(), listOf(
+            ExamplePlayer(playerId3, listOf("server1")),
+            ExamplePlayer(playerId4, listOf("server1"))
+        )),
+        ExampleParty(UUID.randomUUID(), listOf(
+            ExamplePlayer(playerId1, listOf("server1")),
+            ExamplePlayer(playerId2, listOf("server1"))
+        )),
+    ))
+
+    integrator.execute(mode) {
+        val players = it.getPlayers(mode).players
+        for (player in players) {
+            logger.info("Player: ${player}")
+        }
+    }
 }
 
 data class ExampleParty(

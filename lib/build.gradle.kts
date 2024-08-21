@@ -11,6 +11,8 @@ plugins {
 
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
+
+    `maven-publish`
 }
 
 repositories {
@@ -51,4 +53,16 @@ java {
 tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = "idemmatchmaking"
+            artifactId = "client"
+            version = "0.1.0"
+
+            from(components["java"])
+        }
+    }
 }

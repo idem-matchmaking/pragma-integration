@@ -1,10 +1,6 @@
-import idem.client.*
-import idem.client.schemas.*
-import idem.client.ws.IdemEvent
+import idemmatchmaking.client.*
 import io.github.cdimascio.dotenv.dotenv
-import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
-import java.util.UUID
 
 suspend fun main() {
     val env = dotenv {
