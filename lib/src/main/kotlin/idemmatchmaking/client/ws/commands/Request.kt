@@ -123,12 +123,12 @@ internal sealed class Request : Command() {
 
     data class CompleteMatch(
         override val actionPayload: CompleteMatchActionPayload,
-        val deferred: CompletableDeferred<Unit> = CompletableDeferred()
+        val deferred: CompletableDeferred<CompleteMatchResponsePayload> = CompletableDeferred()
     ): Request() {
         override val action = "updateMatchCompleted"
 
         override fun complete(responsePayload: JsonNode) {
-            deferred.complete(Unit)
+            deferred.complete(JsonUtils.fromJsonNode(responsePayload))
         }
 
         override fun completeExceptionally(throwable: Throwable) {

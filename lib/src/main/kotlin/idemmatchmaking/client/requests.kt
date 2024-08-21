@@ -31,10 +31,10 @@ suspend fun IdemClient.failMatch(payload: FailMatchActionPayload) {
     request.deferred.await()
 }
 
-suspend fun IdemClient.completeMatch(payload: CompleteMatchActionPayload) {
+suspend fun IdemClient.completeMatch(payload: CompleteMatchActionPayload): CompleteMatchResponsePayload {
     val request = Request.CompleteMatch(payload)
     sendCommand(request)
-    request.deferred.await()
+    return request.deferred.await()
 }
 
 suspend fun IdemClient.matchSuggestionDelivery(payload: MatchSuggestionDeliveryActionPayload) {

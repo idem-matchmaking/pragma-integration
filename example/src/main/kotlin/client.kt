@@ -25,27 +25,15 @@ suspend fun main() {
     if (players.isNotEmpty()) {
         logger.info("Removing stale players")
 
-        val waitPlayerIds = players.map { it.playerId }.toMutableSet()
-
         for (player in players) {
+            logger.info("Removing player: ${player.playerId}")
             client.removePlayer(
                 RemovePlayerActionPayload(
                     gameId = mode,
-                    playerId = player.playerId
+                    playerId = player.playerId,
+                    force = true
                 )
             )
-        }
-
-        while(waitPlayerIds.isNotEmpty()) {
-            client.incoming.receive().let { event ->
-                when (event) {
-                    is IdemEvent.RemovedPlayerAck -> {
-                        logger.info("Remove player ack received: ${event.payload.playerId}")
-                        waitPlayerIds.remove(event.payload.playerId)
-                    }
-                    else -> logger.info("Event: $event")
-                }
-            }
         }
     }
 
@@ -64,18 +52,6 @@ suspend fun main() {
                     requeue = emptyList()
                 )
             )
-        }
-
-        while(waitMatchIds.isNotEmpty()) {
-            client.incoming.receive().let { event ->
-                when (event) {
-                    is IdemEvent.FailMatchAck -> {
-                        logger.info("Fail match ack received: ${event.payload.matchId}")
-                        waitMatchIds.remove(event.payload.matchId)
-                    }
-                    else -> logger.info("Event: $event")
-                }
-            }
         }
 
         logger.debug("Stale matches cleared")
@@ -131,16 +107,8 @@ suspend fun main() {
                             matchId = matchId
                         )
                     )
-                }
 
-                is IdemEvent.ConfirmMatchAck -> {
-                    logger.info("Match confirmed: ${event.payload.matchId}")
-
-                    require(event.payload.matchId == matchId) {
-                        "Match ID mismatch: ${event.payload.matchId} != $matchId"
-                    }
-
-                    client.completeMatch(
+                    val payload = client.completeMatch(
                         CompleteMatchActionPayload(
                             gameId = event.payload.gameId,
                             matchId = matchId,
@@ -161,20 +129,10 @@ suspend fun main() {
                             )
                         )
                     )
-                }
 
-                is IdemEvent.CompleteMatchAck -> {
-                    logger.info("Match completed: ${event.payload.matchId}")
-
-                    require(event.payload.matchId == matchId) {
-                        "Match ID mismatch: ${event.payload.matchId} != $matchId"
-                    }
-
-                    for (player in event.payload.players) {
+                    for (player in payload.players) {
                         logger.info("Player: $player")
                     }
-
-                    return@main
                 }
 
                 else -> logger.info("Event: $event")
