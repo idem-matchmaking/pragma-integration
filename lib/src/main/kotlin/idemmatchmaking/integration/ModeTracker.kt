@@ -105,10 +105,10 @@ internal class ModeTracker(
         matchId: String,
         teams: List<CompleteMatchActionPayload.Team>,
         gameLength: Double,
-    ): CompletableDeferred<Unit> {
+    ): CompletableDeferred<CompleteMatchResponsePayload> {
         lock.withLock {
             val tracked = trackedMatches[matchId]
-            val deferred = CompletableDeferred<Unit>()
+            val deferred = CompletableDeferred<CompleteMatchResponsePayload>()
             if (tracked == null) {
                 val e = RuntimeException("Unexpected completeMatch: mode = $mode, matchId = $matchId")
                 logger.error(e.message)
@@ -326,7 +326,7 @@ internal class ModeTracker(
 
             is ModeAction.CompleteMatch -> {
                 try {
-                    client.completeMatch(
+                    val response = client.completeMatch(
                         CompleteMatchActionPayload(
                             gameId = mode,
                             matchId = action.matchId,
@@ -335,7 +335,7 @@ internal class ModeTracker(
                             server = action.server,
                         )
                     )
-                    action.deferred.complete(Unit)
+                    action.deferred.complete(response)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {

@@ -3,6 +3,7 @@ package idemmatchmaking.integration
 import idemmatchmaking.client.IdemClient
 import idemmatchmaking.client.IdemConfig
 import idemmatchmaking.client.schemas.CompleteMatchActionPayload
+import idemmatchmaking.client.schemas.CompleteMatchResponsePayload
 import idemmatchmaking.client.ws.IdemEvent
 import io.ktor.util.collections.*
 import kotlinx.coroutines.*
@@ -32,7 +33,7 @@ class IdemIntegrator(
         matchId: String,
         teams: List<CompleteMatchActionPayload.Team>,
         gameLength: Double,
-    ): CompletableDeferred<Unit> {
+    ): CompletableDeferred<CompleteMatchResponsePayload> {
         return getModeTracker(mode).completeMatch(matchId, teams, gameLength)
     }
 

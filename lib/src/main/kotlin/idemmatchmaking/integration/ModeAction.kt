@@ -34,7 +34,7 @@ internal sealed class ModeAction {
         val matchId: String,
         val teams: List<CompleteMatchActionPayload.Team>,
         val gameLength: Double,
-        val deferred: CompletableDeferred<Unit>,
+        val deferred: CompletableDeferred<CompleteMatchResponsePayload>,
         val server: String? = null,
     ) : ModeAction()
 
